@@ -1,41 +1,32 @@
 jQuery(document).ready(function ($) {
-    var api = {
-        get: function (endpoint, data) {
-            data = data || {};
-            return $.ajax({
-                url: glotoSettings.apiUrl + endpoint,
-                method: 'GET',
-                beforeSend: function (xhr) {
-                    xhr.setRequestHeader('X-WP-Nonce', glotoSettings.nonce);
-                },
-                data: data
-            });
-        }
-    };
-
+    /* ─── Config ─── */
     var container = $('#gloto-widgets-container');
     var rangeFilter = $('#gloto-range-filter');
     var widgetIds = glotoSettings.widgetIds || [];
+    var baseUrl = glotoSettings.apiUrl;
 
-    // 1) First test the API itself
-    container.html('<div style="padding:20px;text-align:center;"><span class="spinner is-active" style="float:none;"></span> Probando conexión API...</div>');
+    /**
+     * Simple GET using fetch — NO nonce, NO extra headers.
+     * Returns a Promise that resolves with text (HTML).
+     */
+    function apiGet(endpoint, params) {
+        var url = baseUrl + endpoint;
+        if (params) {
+            var qs = Object.keys(params).map(function (k) {
+                return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+            }).join('&');
+            url += '?' + qs;
+        }
+        return fetch(url, {
+            method: 'GET',
+            credentials: 'same-origin' // send cookies but NO nonce header
+        }).then(function (resp) {
+            if (!resp.ok) throw { status: resp.status, resp: resp };
+            return resp.text();
+        });
+    }
 
-    api.get('/test').done(function (response) {
-        console.log('✅ API Test OK:', response);
-        // API works! Now load widgets
-        loadWidgets();
-    }).fail(function (xhr) {
-        console.error('❌ API Test FAILED:', xhr.status, xhr.responseText);
-        container.html(
-            '<div class="notice notice-error" style="margin:0;padding:15px;">' +
-            '<p><strong>Error de conexión API</strong></p>' +
-            '<p>Status: ' + xhr.status + '</p>' +
-            '<p>La REST API del plugin no responde. Revisa el log de PHP del servidor.</p>' +
-            '<pre style="background:#f5f5f5;padding:10px;overflow:auto;max-height:200px;">' + (xhr.responseText || 'Sin respuesta') + '</pre>' +
-            '</div>'
-        );
-    });
-
+    /* ─── Load all widgets ─── */
     function loadWidgets() {
         container.empty();
 
@@ -46,10 +37,11 @@ jQuery(document).ready(function ($) {
 
         // Create skeleton placeholders
         for (var i = 0; i < widgetIds.length; i++) {
-            var skeleton = '<div class="gloto-widget-card" id="' + widgetIds[i] + '" style="padding:30px;text-align:center;">' +
+            container.append(
+                '<div class="gloto-widget-card" id="' + widgetIds[i] + '" style="padding:30px;text-align:center;">' +
                 '<span class="spinner is-active" style="float:none;"></span> Cargando ' + widgetIds[i] + '...' +
-                '</div>';
-            container.append(skeleton);
+                '</div>'
+            );
         }
 
         // Load sequentially
@@ -62,25 +54,42 @@ jQuery(document).ready(function ($) {
         var id = widgetIds[index];
         var card = $('#' + id);
 
-        api.get('/widgets/' + id, {
-            range: rangeFilter.val()
-        }).done(function (html) {
-            console.log('✅ Widget ' + id + ' loaded');
-            card.replaceWith(html);
-        }).fail(function (xhr) {
-            console.error('❌ Widget ' + id + ' failed:', xhr.status, xhr.responseText);
-            card.html(
-                '<div style="padding:15px;color:#dc3232;">' +
-                '⚠️ Error en ' + id + ' (HTTP ' + xhr.status + ')' +
-                '<pre style="font-size:11px;max-height:100px;overflow:auto;margin-top:5px;">' + (xhr.responseText || '') + '</pre>' +
-                '</div>'
-            );
-        }).always(function () {
-            loadNext(index + 1);
-        });
+        apiGet('/widgets/' + id, { range: rangeFilter.val() })
+            .then(function (html) {
+                console.log('✅ Widget ' + id + ' loaded');
+                card.replaceWith(html);
+            })
+            .catch(function (err) {
+                var status = err.status || '?';
+                console.error('❌ Widget ' + id + ' failed:', status);
+
+                // Try to get response body for debugging
+                if (err.resp && err.resp.text) {
+                    err.resp.text().then(function (body) {
+                        card.html(
+                            '<div style="padding:15px;color:#dc3232;">' +
+                            '⚠️ Error en ' + id + ' (HTTP ' + status + ')' +
+                            '<pre style="font-size:11px;max-height:100px;overflow:auto;margin-top:5px;">' + body.substring(0, 500) + '</pre>' +
+                            '</div>'
+                        );
+                    });
+                } else {
+                    card.html(
+                        '<div style="padding:15px;color:#dc3232;">' +
+                        '⚠️ Error en ' + id + ' (HTTP ' + status + ')' +
+                        '</div>'
+                    );
+                }
+            })
+            .finally(function () {
+                loadNext(index + 1);
+            });
     }
 
-    // Refresh all button
+    /* ─── Start ─── */
+    loadWidgets();
+
+    /* ─── Refresh all ─── */
     $('#gloto-refresh-all').on('click', function () {
         loadWidgets();
     });
@@ -89,13 +98,13 @@ jQuery(document).ready(function ($) {
         loadWidgets();
     });
 
-    // Delegate refresh per widget
+    /* ─── Refresh single widget ─── */
     $(document).on('click', '.gloto-widget-refresh', function () {
         var id = $(this).data('widget');
         var card = $(this).closest('.gloto-widget-card');
         card.html('<div style="padding:20px;text-align:center;"><span class="spinner is-active" style="float:none;"></span></div>');
-        api.get('/widgets/' + id, { range: rangeFilter.val() })
-            .done(function (html) { card.replaceWith(html); })
-            .fail(function () { card.html('<div style="padding:15px;color:#dc3232;">Error al recargar</div>'); });
+        apiGet('/widgets/' + id, { range: rangeFilter.val() })
+            .then(function (html) { card.replaceWith(html); })
+            .catch(function () { card.html('<div style="padding:15px;color:#dc3232;">Error al recargar</div>'); });
     });
 });
