@@ -112,28 +112,33 @@ class StockStrategyWidget extends AbstractWidget
     {
         global $wpdb;
 
-        // 1. Low Stock Count
-        $low_stock = $wpdb->get_var("
-			SELECT COUNT(p.ID)
-			FROM {$wpdb->prefix}posts p
-			JOIN {$wpdb->prefix}postmeta pm ON p.ID = pm.post_id AND pm.meta_key = '_stock_status'
-			WHERE pm.meta_value = 'lowofstock'
-		");
+        // 1. Low Stock: products with stock <= low_stock_amount threshold
+        // WooCommerce stock_status values: 'instock', 'outofstock', 'onbackorder'
+        // There's no 'lowofstock' value. We check _stock <= woocommerce_notify_low_stock_amount
+        $low_threshold = (int)get_option('woocommerce_notify_low_stock_amount', 2);
+        $low_stock = $wpdb->get_var($wpdb->prepare("
+            SELECT COUNT(p.ID)
+            FROM {$wpdb->prefix}posts p
+            JOIN {$wpdb->prefix}postmeta pm_stock ON p.ID = pm_stock.post_id AND pm_stock.meta_key = '_stock'
+            JOIN {$wpdb->prefix}postmeta pm_status ON p.ID = pm_status.post_id AND pm_status.meta_key = '_stock_status'
+            WHERE p.post_type = 'product' AND p.post_status = 'publish'
+            AND pm_status.meta_value = 'instock'
+            AND CAST(pm_stock.meta_value AS SIGNED) > 0
+            AND CAST(pm_stock.meta_value AS SIGNED) <= %d
+        ", $low_threshold));
 
-        // 2. Total Inventory Value (Price * Stock) - Heavy query, approximating
+        // 2. Total Inventory Value (Price * Stock)
         $total_value = $wpdb->get_var("
-			SELECT SUM( CAST(pm_price.meta_value AS UNSIGNED) * CAST(pm_stock.meta_value AS UNSIGNED) )
-			FROM {$wpdb->prefix}posts p
-			JOIN {$wpdb->prefix}postmeta pm_price ON p.ID = pm_price.post_id AND pm_price.meta_key = '_price'
-			JOIN {$wpdb->prefix}postmeta pm_stock ON p.ID = pm_stock.post_id AND pm_stock.meta_key = '_stock'
-			WHERE p.post_type = 'product' AND p.post_status = 'publish'
-		");
+            SELECT SUM( CAST(pm_price.meta_value AS DECIMAL(10,2)) * CAST(pm_stock.meta_value AS SIGNED) )
+            FROM {$wpdb->prefix}posts p
+            JOIN {$wpdb->prefix}postmeta pm_price ON p.ID = pm_price.post_id AND pm_price.meta_key = '_price'
+            JOIN {$wpdb->prefix}postmeta pm_stock ON p.ID = pm_stock.post_id AND pm_stock.meta_key = '_stock'
+            WHERE p.post_type = 'product' AND p.post_status = 'publish'
+            AND CAST(pm_stock.meta_value AS SIGNED) > 0
+        ");
 
-        // 3. Dead Stock (No sales in 90 days but has stock)
-        // Simplified: Find products with stock > 0
-        // Then filter check if they appear in order_items in last 90 days
-        // This is a complex query, simplifying for now
-        $dead_stock = []; // Implement detailed dead stock logic here
+        // 3. Dead Stock placeholder
+        $dead_stock = [];
 
         return [
             'low_stock_count' => $low_stock ?: 0,

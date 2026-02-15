@@ -17,16 +17,8 @@ if (!defined('ABSPATH')) {
 class AjaxController
 {
 
-    /**
-     * Instance
-     *
-     * @var AjaxController
-     */
     private static $instance = null;
 
-    /**
-     * Instance
-     */
     public static function instance()
     {
         if (is_null(self::$instance)) {
@@ -35,17 +27,11 @@ class AjaxController
         return self::$instance;
     }
 
-    /**
-     * Constructor
-     */
     private function __construct()
     {
         add_action('rest_api_init', [$this, 'register_routes']);
     }
 
-    /**
-     * Register REST Routes
-     */
     public function register_routes()
     {
         register_rest_route('gloto-dashboards/v1', '/widgets', [
@@ -61,19 +47,11 @@ class AjaxController
         ]);
     }
 
-    /**
-     * Check Permissions
-     */
     public function check_permissions()
     {
-        // WordPress REST API auto-verifies the wp_rest nonce from X-WP-Nonce header.
-        // We only need to check the user capability here.
         return current_user_can('manage_woocommerce');
     }
 
-    /**
-     * Get All Widgets
-     */
     public function get_all_widgets($request)
     {
         $controllers = AdminController::instance();
@@ -84,15 +62,12 @@ class AjaxController
         $compare = $request->get_param('compare') ? sanitize_text_field($request->get_param('compare')) : 'period';
 
         foreach ($widgets as $widget) {
-            $html .= $widget->render($range, $compare);
+            $html .= $this->safe_render($widget, $range, $compare);
         }
 
         return new \WP_REST_Response($html, 200);
     }
 
-    /**
-     * Get Single Widget
-     */
     public function get_single_widget($request)
     {
         $id = $request->get_param('id');
@@ -104,10 +79,37 @@ class AjaxController
 
         foreach ($widgets as $widget) {
             if ($widget->get_id() === $id) {
-                return new \WP_REST_Response($widget->render($range, $compare), 200);
+                return new \WP_REST_Response($this->safe_render($widget, $range, $compare), 200);
             }
         }
 
         return new \WP_REST_Response('Widget not found', 404);
+    }
+
+    /**
+     * Safe Render: Wraps widget render in try/catch to prevent 502 errors
+     */
+    private function safe_render($widget, $range, $compare)
+    {
+        try {
+            return $widget->render($range, $compare);
+        }
+        catch (\Throwable $e) {
+            // Return an error card instead of crashing the entire request
+            $id = $widget->get_id();
+            $title = $widget->get_title();
+            $error = esc_html($e->getMessage());
+            return "<div class=\"gloto-widget-card\" id=\"{$id}\">
+                <div class=\"gloto-widget-header\">
+                    <h3 class=\"gloto-widget-title\">{$title}</h3>
+                    <button class=\"gloto-widget-refresh\" data-widget=\"{$id}\">
+                        <span class=\"dashicons dashicons-update\"></span>
+                    </button>
+                </div>
+                <div class=\"gloto-widget-error\" style=\"padding:20px;text-align:center;color:#dc3232;\">
+                    ⚠️ Error: {$error}
+                </div>
+            </div>";
+        }
     }
 }
