@@ -30,16 +30,17 @@ class AdminController
      */
     private static $widget_registry = [
         'growth_widget' => 'Gloto\\Dashboards\\Widgets\\GrowthWidget',
-        'sales_pulse_widget' => 'Gloto\\Dashboards\\Widgets\\SalesPulseWidget',
-        'lost_revenue_widget' => 'Gloto\\Dashboards\\Widgets\\LostRevenueWidget',
-        'upsell_machine_widget' => 'Gloto\\Dashboards\\Widgets\\UpsellMachineWidget',
-        'ltv_widget' => 'Gloto\\Dashboards\\Widgets\\LTVWidget',
-        'stock_strategy_widget' => 'Gloto\\Dashboards\\Widgets\\StockStrategyWidget',
-        'churn_rate_widget' => 'Gloto\\Dashboards\\Widgets\\ChurnRateWidget',
-        'cac_widget' => 'Gloto\\Dashboards\\Widgets\\CACWidget',
-        'ttfp_widget' => 'Gloto\\Dashboards\\Widgets\\TimeToFirstPurchaseWidget',
-        'payment_health_widget' => 'Gloto\\Dashboards\\Widgets\\PaymentHealthWidget',
-        'urgency_widget' => 'Gloto\\Dashboards\\Widgets\\UrgencyWidget',
+        // DESACTIVADOS — se activan uno a uno cuando el anterior funcione
+        // 'sales_pulse_widget' => 'Gloto\\Dashboards\\Widgets\\SalesPulseWidget',
+        // 'lost_revenue_widget' => 'Gloto\\Dashboards\\Widgets\\LostRevenueWidget',
+        // 'upsell_machine_widget' => 'Gloto\\Dashboards\\Widgets\\UpsellMachineWidget',
+        // 'ltv_widget' => 'Gloto\\Dashboards\\Widgets\\LTVWidget',
+        // 'stock_strategy_widget' => 'Gloto\\Dashboards\\Widgets\\StockStrategyWidget',
+        // 'churn_rate_widget' => 'Gloto\\Dashboards\\Widgets\\ChurnRateWidget',
+        // 'cac_widget' => 'Gloto\\Dashboards\\Widgets\\CACWidget',
+        // 'ttfp_widget' => 'Gloto\\Dashboards\\Widgets\\TimeToFirstPurchaseWidget',
+        // 'payment_health_widget' => 'Gloto\\Dashboards\\Widgets\\PaymentHealthWidget',
+        // 'urgency_widget' => 'Gloto\\Dashboards\\Widgets\\UrgencyWidget',
     ];
 
     /**

@@ -7,18 +7,13 @@
                 <option value="90">Últimos 90 días</option>
                 <option value="365">Último año</option>
             </select>
-            <select id="gloto-compare-filter" class="gloto-select">
-                <option value="period">vs Periodo Anterior</option>
-                <option value="year">vs Año Anterior</option>
-            </select>
             <button id="gloto-refresh-all" class="button button-primary">
-                <span class="dashicons dashicons-update"></span> Actualizar Todo
+                <span class="dashicons dashicons-update"></span> Actualizar
             </button>
         </div>
     </header>
 
     <div class="gloto-widgets-grid" id="gloto-widgets-container">
-        <!-- Widgets loaded via JS sequential waterfall -->
         <div class="gloto-loading" style="text-align:center;padding:40px;color:#666;">
             <span class="spinner is-active" style="float:none;margin:0 10px 0 0;"></span>
             Cargando métricas...
