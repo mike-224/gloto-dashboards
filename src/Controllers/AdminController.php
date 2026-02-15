@@ -90,18 +90,22 @@ class AdminController
             return;
         }
 
+        // Use filemtime for cache busting — guarantees fresh JS/CSS after every deploy
+        $css_ver = file_exists(GLOTO_DASHBOARDS_PATH . 'assets/css/admin.css') ? filemtime(GLOTO_DASHBOARDS_PATH . 'assets/css/admin.css') : GLOTO_DASHBOARDS_VERSION;
+        $js_ver = file_exists(GLOTO_DASHBOARDS_PATH . 'assets/js/admin.js') ? filemtime(GLOTO_DASHBOARDS_PATH . 'assets/js/admin.js') : GLOTO_DASHBOARDS_VERSION;
+
         wp_enqueue_style(
             'gloto-dashboards-admin',
             GLOTO_DASHBOARDS_URL . 'assets/css/admin.css',
         [],
-            GLOTO_DASHBOARDS_VERSION
+            $css_ver
         );
 
         wp_enqueue_script(
             'gloto-dashboards-admin',
             GLOTO_DASHBOARDS_URL . 'assets/js/admin.js',
         ['jquery'],
-            GLOTO_DASHBOARDS_VERSION,
+            $js_ver,
             true
         );
 
