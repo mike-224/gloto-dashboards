@@ -1,0 +1,17 @@
+# General
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build
+dist/
+*.zip
+
+# Agent
+.agent/
+files/
