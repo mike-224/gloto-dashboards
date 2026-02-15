@@ -54,8 +54,8 @@ class AjaxController
 
     public function get_all_widgets($request)
     {
-        $controllers = AdminController::instance();
-        $widgets = $controllers->get_widgets();
+        $admin = AdminController::instance();
+        $widgets = $admin->get_widgets();
         $html = '';
 
         $range = $request->get_param('range') ? intval($request->get_param('range')) : 30;
@@ -70,20 +70,23 @@ class AjaxController
 
     public function get_single_widget($request)
     {
-        $id = $request->get_param('id');
-        $controllers = AdminController::instance();
-        $widgets = $controllers->get_widgets();
+        $id = sanitize_text_field($request->get_param('id'));
+        $admin = AdminController::instance();
 
         $range = $request->get_param('range') ? intval($request->get_param('range')) : 30;
         $compare = $request->get_param('compare') ? sanitize_text_field($request->get_param('compare')) : 'period';
 
-        foreach ($widgets as $widget) {
-            if ($widget->get_id() === $id) {
-                return new \WP_REST_Response($this->safe_render($widget, $range, $compare), 200);
-            }
+        // Use the new get_widget() method — only instantiates ONE widget
+        $widget = $admin->get_widget($id);
+
+        if (!$widget) {
+            return new \WP_REST_Response(
+                '<div class="gloto-widget-card"><div class="gloto-widget-error" style="padding:20px;text-align:center;color:#dc3232;">Widget no encontrado: ' . esc_html($id) . '</div></div>',
+                200
+                );
         }
 
-        return new \WP_REST_Response('Widget not found', 404);
+        return new \WP_REST_Response($this->safe_render($widget, $range, $compare), 200);
     }
 
     /**
@@ -95,10 +98,12 @@ class AjaxController
             return $widget->render($range, $compare);
         }
         catch (\Throwable $e) {
-            // Return an error card instead of crashing the entire request
-            $id = $widget->get_id();
-            $title = $widget->get_title();
+            $id = method_exists($widget, 'get_id') ? $widget->get_id() : 'unknown';
+            $title = method_exists($widget, 'get_title') ? $widget->get_title() : 'Widget';
             $error = esc_html($e->getMessage());
+
+            error_log("Gloto Dashboards: Widget '{$id}' render error: {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}");
+
             return "<div class=\"gloto-widget-card\" id=\"{$id}\">
                 <div class=\"gloto-widget-header\">
                     <h3 class=\"gloto-widget-title\">{$title}</h3>

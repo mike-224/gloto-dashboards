@@ -18,7 +18,10 @@
     </header>
 
     <div class="gloto-widgets-grid" id="gloto-widgets-container">
-        <!-- Widgets will be loaded here via JS -->
-        <div class="gloto-loading">Cargando métricas...</div>
+        <!-- Widgets loaded via JS sequential waterfall -->
+        <div class="gloto-loading" style="text-align:center;padding:40px;color:#666;">
+            <span class="spinner is-active" style="float:none;margin:0 10px 0 0;"></span>
+            Cargando métricas...
+        </div>
     </div>
 </div>

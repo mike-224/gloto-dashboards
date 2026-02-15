@@ -25,6 +25,24 @@ class AdminController
     private static $instance = null;
 
     /**
+     * Widget registry: ID => Class name
+     * This avoids instantiating widgets during enqueue_assets()
+     */
+    private static $widget_registry = [
+        'growth_widget' => 'Gloto\\Dashboards\\Widgets\\GrowthWidget',
+        'sales_pulse_widget' => 'Gloto\\Dashboards\\Widgets\\SalesPulseWidget',
+        'lost_revenue_widget' => 'Gloto\\Dashboards\\Widgets\\LostRevenueWidget',
+        'upsell_machine_widget' => 'Gloto\\Dashboards\\Widgets\\UpsellMachineWidget',
+        'ltv_widget' => 'Gloto\\Dashboards\\Widgets\\LTVWidget',
+        'stock_strategy_widget' => 'Gloto\\Dashboards\\Widgets\\StockStrategyWidget',
+        'churn_rate_widget' => 'Gloto\\Dashboards\\Widgets\\ChurnRateWidget',
+        'cac_widget' => 'Gloto\\Dashboards\\Widgets\\CACWidget',
+        'ttfp_widget' => 'Gloto\\Dashboards\\Widgets\\TimeToFirstPurchaseWidget',
+        'payment_health_widget' => 'Gloto\\Dashboards\\Widgets\\PaymentHealthWidget',
+        'urgency_widget' => 'Gloto\\Dashboards\\Widgets\\UrgencyWidget',
+    ];
+
+    /**
      * Instance
      */
     public static function instance()
@@ -62,6 +80,8 @@ class AdminController
 
     /**
      * Enqueue Assets
+     * NOTE: We do NOT instantiate widgets here. We use the static registry
+     * to pass IDs to JS, avoiding fatal errors during page load.
      */
     public function enqueue_assets($hook)
     {
@@ -84,15 +104,10 @@ class AdminController
             true
         );
 
-        $widgets = $this->get_widgets();
-        $widget_ids = array_map(function ($w) {
-            return $w->get_id();
-        }, $widgets);
-
         wp_localize_script('gloto-dashboards-admin', 'glotoSettings', [
             'nonce' => wp_create_nonce('wp_rest'),
             'apiUrl' => rest_url('gloto-dashboards/v1'),
-            'widgetIds' => $widget_ids
+            'widgetIds' => array_keys(self::$widget_registry)
         ]);
     }
 
@@ -105,24 +120,51 @@ class AdminController
     }
 
     /**
-     * Get Registered Widgets
+     * Get Registered Widgets (instantiates on demand)
+     * Called only from AjaxController during REST API requests
      *
      * @return array
      */
     public function get_widgets()
     {
-        return [
-            new \Gloto\Dashboards\Widgets\GrowthWidget(),
-            new \Gloto\Dashboards\Widgets\SalesPulseWidget(),
-            new \Gloto\Dashboards\Widgets\LostRevenueWidget(),
-            new \Gloto\Dashboards\Widgets\UpsellMachineWidget(),
-            new \Gloto\Dashboards\Widgets\LTVWidget(),
-            new \Gloto\Dashboards\Widgets\StockStrategyWidget(),
-            new \Gloto\Dashboards\Widgets\ChurnRateWidget(),
-            new \Gloto\Dashboards\Widgets\CACWidget(),
-            new \Gloto\Dashboards\Widgets\TimeToFirstPurchaseWidget(),
-            new \Gloto\Dashboards\Widgets\PaymentHealthWidget(),
-            new \Gloto\Dashboards\Widgets\UrgencyWidget(),
-        ];
+        $widgets = [];
+        foreach (self::$widget_registry as $id => $class) {
+            try {
+                if (class_exists($class)) {
+                    $widgets[] = new $class();
+                }
+            }
+            catch (\Throwable $e) {
+                // Skip broken widgets silently during instantiation
+                error_log('Gloto Dashboards: Failed to load widget ' . $id . ': ' . $e->getMessage());
+            }
+        }
+        return $widgets;
+    }
+
+    /**
+     * Get a single widget by ID
+     *
+     * @param string $id Widget ID
+     * @return \Gloto\Dashboards\Widgets\WidgetInterface|null
+     */
+    public function get_widget($id)
+    {
+        if (!isset(self::$widget_registry[$id])) {
+            return null;
+        }
+
+        $class = self::$widget_registry[$id];
+
+        try {
+            if (class_exists($class)) {
+                return new $class();
+            }
+        }
+        catch (\Throwable $e) {
+            error_log('Gloto Dashboards: Failed to load widget ' . $id . ': ' . $e->getMessage());
+        }
+
+        return null;
     }
 }
