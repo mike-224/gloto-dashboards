@@ -22,7 +22,7 @@ jQuery(document).ready(function ($) {
             credentials: 'same-origin' // send cookies but NO nonce header
         }).then(function (resp) {
             if (!resp.ok) throw { status: resp.status, resp: resp };
-            return resp.text();
+            return resp.json();
         });
     }
 
