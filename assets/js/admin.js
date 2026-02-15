@@ -1,5 +1,5 @@
 jQuery(document).ready(function ($) {
-    const api = {
+    var api = {
         get: function (endpoint, data) {
             data = data || {};
             return $.ajax({
@@ -13,91 +13,89 @@ jQuery(document).ready(function ($) {
         }
     };
 
-    const Dashboard = {
-        init: function () {
-            this.range = $('#gloto-range-filter');
-            this.compare = $('#gloto-compare-filter');
-            this.container = $('#gloto-widgets-container');
-            this.widgetIds = glotoSettings.widgetIds || [];
+    var container = $('#gloto-widgets-container');
+    var rangeFilter = $('#gloto-range-filter');
+    var widgetIds = glotoSettings.widgetIds || [];
 
-            this.bindEvents();
-            this.initGrid();
-        },
+    // 1) First test the API itself
+    container.html('<div style="padding:20px;text-align:center;"><span class="spinner is-active" style="float:none;"></span> Probando conexión API...</div>');
 
-        bindEvents: function () {
-            var self = this;
-            $('#gloto-refresh-all').on('click', function () {
-                self.initGrid();
-            });
+    api.get('/test').done(function (response) {
+        console.log('✅ API Test OK:', response);
+        // API works! Now load widgets
+        loadWidgets();
+    }).fail(function (xhr) {
+        console.error('❌ API Test FAILED:', xhr.status, xhr.responseText);
+        container.html(
+            '<div class="notice notice-error" style="margin:0;padding:15px;">' +
+            '<p><strong>Error de conexión API</strong></p>' +
+            '<p>Status: ' + xhr.status + '</p>' +
+            '<p>La REST API del plugin no responde. Revisa el log de PHP del servidor.</p>' +
+            '<pre style="background:#f5f5f5;padding:10px;overflow:auto;max-height:200px;">' + (xhr.responseText || 'Sin respuesta') + '</pre>' +
+            '</div>'
+        );
+    });
 
-            this.range.on('change', function () { self.initGrid(); });
-            this.compare.on('change', function () { self.initGrid(); });
+    function loadWidgets() {
+        container.empty();
 
-            $(document).on('click', '.gloto-widget-refresh', function () {
-                var widgetId = $(this).data('widget');
-                var card = $(this).closest('.gloto-widget-card');
-                self.refreshWidget(widgetId, card);
-            });
-        },
-
-        initGrid: function () {
-            this.container.empty();
-            var self = this;
-
-            if (this.widgetIds.length === 0) {
-                this.container.html('<div class="notice notice-warning"><p>No se encontraron widgets.</p></div>');
-                return;
-            }
-
-            // Create skeleton placeholders
-            for (var i = 0; i < this.widgetIds.length; i++) {
-                var id = this.widgetIds[i];
-                var skeleton = '<div class="gloto-widget-card gloto-loading-skeleton" id="' + id + '">' +
-                    '<div class="gloto-skeleton-body">' +
-                    '<span class="spinner is-active" style="float:none;margin:0"></span> Cargando...' +
-                    '</div></div>';
-                this.container.append(skeleton);
-            }
-
-            // Load widgets one by one (sequential)
-            this.loadNextWidget(0);
-        },
-
-        loadNextWidget: function (index) {
-            if (index >= this.widgetIds.length) {
-                return; // All done
-            }
-
-            var self = this;
-            var widgetId = this.widgetIds[index];
-            var card = $('#' + widgetId);
-
-            api.get('/widgets/' + widgetId, {
-                range: this.range.val(),
-                compare: this.compare.val()
-            }).done(function (html) {
-                card.replaceWith(html);
-            }).fail(function () {
-                card.html('<div class="gloto-widget-error">Error cargando este widget.</div>');
-            }).always(function () {
-                self.loadNextWidget(index + 1);
-            });
-        },
-
-        refreshWidget: function (id, card) {
-            card.find('.gloto-widget-refresh .dashicons').addClass('spin');
-
-            api.get('/widgets/' + id, {
-                range: this.range.val(),
-                compare: this.compare.val()
-            }).done(function (html) {
-                card.replaceWith(html);
-            }).fail(function () {
-                card.find('.dashicons').removeClass('spin');
-                alert('Error actualizando widget');
-            });
+        if (widgetIds.length === 0) {
+            container.html('<div class="notice notice-warning"><p>No hay widgets registrados.</p></div>');
+            return;
         }
-    };
 
-    Dashboard.init();
+        // Create skeleton placeholders
+        for (var i = 0; i < widgetIds.length; i++) {
+            var skeleton = '<div class="gloto-widget-card" id="' + widgetIds[i] + '" style="padding:30px;text-align:center;">' +
+                '<span class="spinner is-active" style="float:none;"></span> Cargando ' + widgetIds[i] + '...' +
+                '</div>';
+            container.append(skeleton);
+        }
+
+        // Load sequentially
+        loadNext(0);
+    }
+
+    function loadNext(index) {
+        if (index >= widgetIds.length) return;
+
+        var id = widgetIds[index];
+        var card = $('#' + id);
+
+        api.get('/widgets/' + id, {
+            range: rangeFilter.val()
+        }).done(function (html) {
+            console.log('✅ Widget ' + id + ' loaded');
+            card.replaceWith(html);
+        }).fail(function (xhr) {
+            console.error('❌ Widget ' + id + ' failed:', xhr.status, xhr.responseText);
+            card.html(
+                '<div style="padding:15px;color:#dc3232;">' +
+                '⚠️ Error en ' + id + ' (HTTP ' + xhr.status + ')' +
+                '<pre style="font-size:11px;max-height:100px;overflow:auto;margin-top:5px;">' + (xhr.responseText || '') + '</pre>' +
+                '</div>'
+            );
+        }).always(function () {
+            loadNext(index + 1);
+        });
+    }
+
+    // Refresh all button
+    $('#gloto-refresh-all').on('click', function () {
+        loadWidgets();
+    });
+
+    rangeFilter.on('change', function () {
+        loadWidgets();
+    });
+
+    // Delegate refresh per widget
+    $(document).on('click', '.gloto-widget-refresh', function () {
+        var id = $(this).data('widget');
+        var card = $(this).closest('.gloto-widget-card');
+        card.html('<div style="padding:20px;text-align:center;"><span class="spinner is-active" style="float:none;"></span></div>');
+        api.get('/widgets/' + id, { range: rangeFilter.val() })
+            .done(function (html) { card.replaceWith(html); })
+            .fail(function () { card.html('<div style="padding:15px;color:#dc3232;">Error al recargar</div>'); });
+    });
 });

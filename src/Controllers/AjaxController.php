@@ -34,6 +34,15 @@ class AjaxController
 
     public function register_routes()
     {
+        // DEBUG: Ultra-simple test endpoint
+        register_rest_route('gloto-dashboards/v1', '/test', [
+            'methods' => 'GET',
+            'callback' => function () {
+            return new \WP_REST_Response(['status' => 'ok', 'php' => PHP_VERSION, 'time' => date('Y-m-d H:i:s')], 200);
+        },
+            'permission_callback' => '__return_true',
+        ]);
+
         register_rest_route('gloto-dashboards/v1', '/widgets', [
             'methods' => 'GET',
             'callback' => [$this, 'get_all_widgets'],
@@ -107,9 +116,6 @@ class AjaxController
             return "<div class=\"gloto-widget-card\" id=\"{$id}\">
                 <div class=\"gloto-widget-header\">
                     <h3 class=\"gloto-widget-title\">{$title}</h3>
-                    <button class=\"gloto-widget-refresh\" data-widget=\"{$id}\">
-                        <span class=\"dashicons dashicons-update\"></span>
-                    </button>
                 </div>
                 <div class=\"gloto-widget-error\" style=\"padding:20px;text-align:center;color:#dc3232;\">
                     ⚠️ Error: {$error}
