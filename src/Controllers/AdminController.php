@@ -79,14 +79,20 @@ class AdminController
         wp_enqueue_script(
             'gloto-dashboards-admin',
             GLOTO_DASHBOARDS_URL . 'assets/js/admin.js',
-        ['jquery', 'wp-api', 'wp-element'],
+        ['jquery'],
             GLOTO_DASHBOARDS_VERSION,
             true
         );
 
+        $widgets = $this->get_widgets();
+        $widget_ids = array_map(function ($w) {
+            return $w->get_id();
+        }, $widgets);
+
         wp_localize_script('gloto-dashboards-admin', 'glotoSettings', [
-            'nonce' => wp_create_nonce('gloto_dashboards_nonce'),
-            'apiUrl' => rest_url('gloto-dashboards/v1')
+            'nonce' => wp_create_nonce('wp_rest'),
+            'apiUrl' => rest_url('gloto-dashboards/v1'),
+            'widgetIds' => $widget_ids
         ]);
     }
 
@@ -96,5 +102,27 @@ class AdminController
     public function render_dashboard()
     {
         require_once GLOTO_DASHBOARDS_PATH . 'templates/admin-dashboard.php';
+    }
+
+    /**
+     * Get Registered Widgets
+     *
+     * @return array
+     */
+    public function get_widgets()
+    {
+        return [
+            new \Gloto\Dashboards\Widgets\GrowthWidget(),
+            new \Gloto\Dashboards\Widgets\SalesPulseWidget(),
+            new \Gloto\Dashboards\Widgets\LostRevenueWidget(),
+            new \Gloto\Dashboards\Widgets\UpsellMachineWidget(),
+            new \Gloto\Dashboards\Widgets\LTVWidget(),
+            new \Gloto\Dashboards\Widgets\StockStrategyWidget(),
+            new \Gloto\Dashboards\Widgets\ChurnRateWidget(),
+            new \Gloto\Dashboards\Widgets\CACWidget(),
+            new \Gloto\Dashboards\Widgets\TimeToFirstPurchaseWidget(),
+            new \Gloto\Dashboards\Widgets\PaymentHealthWidget(),
+            new \Gloto\Dashboards\Widgets\UrgencyWidget(),
+        ];
     }
 }

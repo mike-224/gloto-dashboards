@@ -66,7 +66,9 @@ class AjaxController
      */
     public function check_permissions()
     {
-        return current_user_can('manage_woocommerce') && wp_verify_nonce($_SERVER['HTTP_X_WP_NONCE'] ?? '', 'wp_rest');
+        // WordPress REST API auto-verifies the wp_rest nonce from X-WP-Nonce header.
+        // We only need to check the user capability here.
+        return current_user_can('manage_woocommerce');
     }
 
     /**
