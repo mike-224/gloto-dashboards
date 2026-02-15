@@ -1,0 +1,146 @@
+:root {
+    --gloto-primary: #6366f1;
+    --gloto-secondary: #4f46e5;
+    --gloto-success: #10b981;
+    --gloto-warning: #f59e0b;
+    --gloto-danger: #ef4444;
+    --gloto-bg: #f3f4f6;
+    --gloto-card-bg: #ffffff;
+    --gloto-text: #1f2937;
+    --gloto-text-muted: #6b7280;
+    --gloto-border: #e5e7eb;
+}
+
+.gloto-dashboard-wrap {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.gloto-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.gloto-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--gloto-text);
+    margin: 0;
+}
+
+.gloto-controls {
+    display: flex;
+    gap: 12px;
+}
+
+.gloto-select {
+    padding: 8px 12px;
+    border: 1px solid var(--gloto-border);
+    border-radius: 6px;
+    background: var(--gloto-card-bg);
+}
+
+.gloto-widgets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+}
+
+.gloto-widget-card {
+    background: var(--gloto-card-bg);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.gloto-widget-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.gloto-widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--gloto-border);
+    padding-bottom: 12px;
+}
+
+.gloto-widget-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gloto-text);
+    margin: 0;
+}
+
+.gloto-widget-refresh {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--gloto-text-muted);
+    transition: color 0.2s;
+}
+
+.gloto-widget-refresh:hover {
+    color: var(--gloto-primary);
+}
+
+.gloto-metric-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gloto-text);
+    margin-bottom: 4px;
+}
+
+.gloto-metric-trend {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.gloto-trend-up {
+    color: var(--gloto-success);
+}
+
+.gloto-trend-down {
+    color: var(--gloto-danger);
+}
+
+.gloto-trend-neutral {
+    color: var(--gloto-text-muted);
+}
+
+/* Grid Specifics */
+.gloto-widget-full {
+    grid-column: 1 / -1;
+}
+
+.gloto-widget-half {
+    grid-column: span 2;
+}
+
+/* Skeleton & Loading */
+.gloto-loading-skeleton {
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: var(--gloto-text-muted);
+}
+
+.gloto-widget-refresh .dashicons.spin {
+    animation: gloto-spin 1s linear infinite;
+}
+
+@keyframes gloto-spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
